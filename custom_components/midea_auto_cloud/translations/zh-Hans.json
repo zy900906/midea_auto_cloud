@@ -2136,6 +2136,18 @@
       "b7_left_gear": {
         "name": "左灶档位"
       },
+      "b7_middle_status": {
+        "name": "中灶状态",
+        "state": {
+          "initial": "初始化",
+          "power_off": "已关闭",
+          "working": "运行中",
+          "power_off_delay": "延时关闭"
+        }
+      },
+      "b7_middle_gear": {
+        "name": "中灶档位"
+      },
       "b7_right_status": {
         "name": "右灶状态",
         "state": {
