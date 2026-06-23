@@ -196,9 +196,6 @@ DEVICE_MAPPING = {
                 },
                 "light": {
                     "device_class": SwitchDeviceClass.SWITCH,
-                },
-                "wisdom_wind": {
-                    "device_class": SwitchDeviceClass.SWITCH,
                 }
             },
             Platform.SENSOR: {
@@ -273,15 +270,6 @@ DEVICE_MAPPING = {
                 }
             },
             Platform.SELECT: {
-                "wind_pressure": {
-                    "options": {
-                        "off": {"wind_pressure": "0"},
-                        "low": {"wind_pressure": "1"},
-                        "medium": {"wind_pressure": "2"},
-                        "high": {"wind_pressure": "3"},
-                        "extreme": {"wind_pressure": "4"},
-                    }
-                },
                 "gear": {
                     "options": {
                         "off": {"gear": 0},
@@ -289,29 +277,6 @@ DEVICE_MAPPING = {
                         "medium": {"gear": 2},
                         "high": {"gear": 3},
                         "extreme": {"gear": 4},
-                    }
-                },
-                "inverter": {
-                    "options": {
-                        "off": {"inverter": "off"},
-                        "on": {"inverter": "on"}
-                    },
-                    "command": {
-                        "electronic_control_version": 2,
-                        "type": "b6",
-                        "b6_action": "control"
-                    }
-                },
-                "light": {
-                    "options": {
-                        "off": {"light": "off"},
-                        "on": {"light": "on"}
-                    },
-                    "command": {
-                        "electronic_control_version": 2,
-                        "type": "b6",
-                        "b6_action": "setting",
-                        "setting": "light"
                     }
                 }
             }
