@@ -120,33 +120,6 @@ DEVICE_MAPPING = {
                         "setting": "gesture"
                     }
                 },
-                "gesture_value": {
-                    "options": {
-                        "power_toggle": {"gesture_value": 1},
-                        "adjust_speed": {"gesture_value": 2},
-                        "light_toggle": {"gesture_value": 3},
-                        "power_and_speed": {"gesture_value": 4}
-                    },
-                    "command": {
-                        "electronic_control_version": 2,
-                        "type": "b6",
-                        "b6_action": "setting",
-                        "setting": "gesture"
-                    }
-                },
-                "gesture_sensitivity_value": {
-                    "options": {
-                        "low": {"gesture_sensitivity_value": 1},
-                        "medium": {"gesture_sensitivity_value": 2},
-                        "high": {"gesture_sensitivity_value": 3}
-                    },
-                    "command": {
-                        "electronic_control_version": 2,
-                        "type": "b6",
-                        "b6_action": "setting",
-                        "setting": "gesture"
-                    }
-                },
                 "inverter": {
                     "options": {
                         "off": {"inverter": "off"},
