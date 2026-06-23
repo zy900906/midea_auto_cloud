@@ -2133,6 +2133,9 @@
           "power_off_delay": "延时关闭"
         }
       },
+      "b7_left_remaining_time": {
+        "name": "左灶定时剩余时间"
+      },
       "b7_left_gear": {
         "name": "左灶档位"
       },
@@ -2144,6 +2147,9 @@
           "working": "运行中",
           "power_off_delay": "延时关闭"
         }
+      },
+      "b7_middle_remaining_time": {
+        "name": "中灶定时剩余时间"
       },
       "b7_middle_gear": {
         "name": "中灶档位"
