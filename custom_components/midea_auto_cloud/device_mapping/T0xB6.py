@@ -214,14 +214,12 @@ DEVICE_MAPPING = {
                 "b7_left_remaining_time": {
                 "device_class": SensorDeviceClass.DURATION,
                 "unit_of_measurement": UnitOfTime.SECONDS,
-                "state_class": SensorStateClass.MEASUREMENT,
-                "translation_key": "left_stove_remaining_time"
+                "state_class": SensorStateClass.MEASUREMENT
             },
                 "b7_middle_remaining_time": {
                 "device_class": SensorDeviceClass.DURATION,
                 "unit_of_measurement": UnitOfTime.SECONDS,
-                "state_class": SensorStateClass.MEASUREMENT,
-                "translation_key": "middle_stove_remaining_time"
+                "state_class": SensorStateClass.MEASUREMENT
             },
                 "b7_vbattery": {
                     "device_class": SensorDeviceClass.VOLTAGE,
