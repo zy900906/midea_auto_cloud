@@ -878,6 +878,7 @@ class MSmartHomeCloud(MideaCloud):
             f"{self._app_key}:{clouds['MSmartHome']['iot_key']}".encode("ascii")
         ).decode("ascii")
         self._uid = ""
+        self._homegroup_id = None
 
     def _make_general_data(self):
         return {
@@ -974,6 +975,19 @@ class MSmartHomeCloud(MideaCloud):
                 await self._notify_login_success()
                 return True
         return False
+
+    async def list_home(self):
+        data = self._make_general_data()
+        if response := await self._api_request(
+            endpoint="/v1/homegroup/list/get",
+            data=data,
+        ):
+            homes = {}
+            for home in response.get("homeList") or []:
+                homes[int(home["homegroupId"])] = home.get("homeName") or home["homeName"]
+            if homes:
+                return homes
+        return await super().list_home()
 
     async def list_appliances(self, home_id=None) -> dict | None:
         data = self._make_general_data()
