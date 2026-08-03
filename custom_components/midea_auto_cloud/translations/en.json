@@ -2617,10 +2617,27 @@
         "name": "PM2.5"
       },
       "ud_swing_angle": {
-        "name": "UD Swing Angle"
+        "name": "UD Swing Angle",
+        "state": {
+          "off": "Off",
+          "on": "On",
+          "30": "30°",
+          "60": "60°",
+          "135": "135°"
+        }
       },
       "lr_swing_angle": {
-        "name": "LR Swing Angle"
+        "name": "LR Swing Angle",
+        "state": {
+          "off": "Off",
+          "30": "30°",
+          "60": "60°",
+          "120": "120°",
+          "default": "Full",
+          "diy": "DIY",
+          "normal": "Fixed angle",
+          "on": "On"
+        }
       },
       "lr_diy_down_percent": {
         "name": "LR DIY Down Percent"
@@ -3102,7 +3119,7 @@
               "sleep": "Sleep Wind",
               "self_selection": "Self Selection",
               "sleeping_wind": "Sleep Wind",
-              "purified_wind": "Purified Wind",
+              "ai_smart": "Ecological Wind",
               "double_area": "Double Area Wind"
             }
           }

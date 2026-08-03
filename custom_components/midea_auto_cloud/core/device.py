@@ -1,3 +1,4 @@
+from typing import Any
 import threading
 import socket
 import traceback
@@ -95,13 +96,34 @@ class MiedaDevice(threading.Thread):
         self._heartbeat_interval = 10
         self._device_connected(connected)
         self._queries = [{}]
+        # 云端返回 lua analysis exception (1014) 的查询，后续刷新不再重试
+        self._skipped_queries: set = set()
         self._cloud_queries = {}
         self._centralized = []
         self._calculate_get = []
         self._calculate_set = []
         self._default_values = {}
-        self._lua_runtime = MideaCodec(lua_file, device_type=self._attributes.get("device_type"), sn=sn, subtype=subtype) if lua_file is not None else None
+        # lupa/Lua load is blocking; construct off the event loop via async_init_lua_runtime()
+        self._lua_file = lua_file
+        self._lua_runtime: MideaCodec | None = None
         self._cloud = cloud
+
+    async def async_init_lua_runtime(self) -> None:
+        """Load the device Lua codec in a worker thread (dofile is blocking)."""
+        if self._lua_runtime is not None or not self._lua_file:
+            return
+        try:
+            self._lua_runtime = await MideaCodec.async_create(
+                self._lua_file,
+                device_type=self._attributes.get("device_type"),
+                sn=self._sn,
+                subtype=self._subtype,
+            )
+        except Exception as e:
+            MideaLogger.warning(
+                f"Failed to init Lua runtime for {self._device_name}: {e}"
+            )
+            self._lua_runtime = None
 
     def _handle_t0xd9_db_location_selection(self, status, value):
         # 处理T0xD9复式洗衣机的db_location_selection更新
@@ -203,9 +225,16 @@ class MiedaDevice(threading.Thread):
 
     def set_queries(self, queries: list):
         self._queries = queries
+        self._skipped_queries.clear()
 
     def set_cloud_queries(self, cloud_queries: dict):
         self._cloud_queries = cloud_queries or {}
+
+    @staticmethod
+    def _query_signature(query) -> tuple:
+        if isinstance(query, dict):
+            return tuple(sorted(query.items()))
+        return (("__raw__", query),)
 
     def set_centralized(self, centralized: list):
         self._centralized = centralized
@@ -275,26 +304,77 @@ class MiedaDevice(threading.Thread):
     def get_attribute(self, attribute):
         return self._attributes.get(attribute)
 
+    @staticmethod
+    def _has_nested_path(attrs: dict, dotted_key: str) -> bool:
+        value = attrs
+        for key in dotted_key.split("."):
+            if not isinstance(value, dict) or key not in value:
+                return False
+            value = value[key]
+        return True
+
+    def _has_attribute(self, attribute: str) -> bool:
+        attrs = self._attributes if isinstance(self._attributes, dict) else {}
+        if not attrs or attribute in attrs or attribute in LAMP_CONTROL_KEYS:
+            return True
+        if "." in attribute and attribute.replace(".", "_") in attrs:
+            return True
+        if "." in attribute and self._has_nested_path(attrs, attribute):
+            return True
+        return False
+
+    def _get_existing_attr_value(self, attrs: dict, key: str) -> Any:
+        if self._has_nested_path(attrs, key):
+            val = attrs
+            for k in key.split("."):
+                val = val[k]
+            return val
+        if "." in key:
+            underscore = key.replace(".", "_")
+            if underscore in attrs:
+                return attrs[underscore]
+        return attrs.get(key)
+
     def _convert_to_nested_structure(self, attributes):
-        """Convert dot-notation attributes to nested structure."""
+        """Convert control keys to the device's wire format.
+
+        Dotted mapping keys (e.g. ``mode.current``) become nested objects when
+        the device status is nested; otherwise prefer flat underscore / literal
+        dotted keys so the same default mapping works for both #216-style and
+        Clivet nested 17100001 payloads.
+        """
         nested = {}
+        attrs = self._attributes if isinstance(self._attributes, dict) else {}
         for key, value in attributes.items():
-            if '.' in key:
-                # Handle nested attributes with dot notation
-                keys = key.split('.')
+            existing = self._get_existing_attr_value(attrs, key)
+            if isinstance(existing, str) and not isinstance(value, (str, dict, list)):
+                value = str(value)
+
+            if "." not in key:
+                nested[key] = value
+                continue
+
+            underscore = key.replace(".", "_")
+            if self._has_nested_path(attrs, key):
+                keys = key.split(".")
                 current_dict = nested
-                
-                # Navigate to the parent dictionary
                 for k in keys[:-1]:
                     if k not in current_dict:
                         current_dict[k] = {}
                     current_dict = current_dict[k]
-                
-                # Set the final value
                 current_dict[keys[-1]] = value
-            else:
-                # Handle flat attributes
+            elif underscore in attrs:
+                nested[underscore] = value
+            elif key in attrs:
                 nested[key] = value
+            else:
+                keys = key.split(".")
+                current_dict = nested
+                for k in keys[:-1]:
+                    if k not in current_dict:
+                        current_dict[k] = {}
+                    current_dict = current_dict[k]
+                current_dict[keys[-1]] = value
         return nested
 
     def _status_for_lua_control(self, control_attributes: dict) -> dict:
@@ -318,13 +398,13 @@ class MiedaDevice(threading.Thread):
             if key not in excluded
         }
 
-    async def set_attribute(self, attribute, value):
-        if attribute in self._attributes.keys():
+    async def set_attribute(self, attribute, value) -> bool:
+        if self._has_attribute(attribute):
             new_status = {}
             for attr in self._centralized:
                 new_status[attr] = self._attributes.get(attr)
             new_status[attribute] = value
-            
+
             # 针对T0xD9复式洗衣机，当本地变更 db_location_selection 时，调整 db_location
             if self._device_type == 0xD9:
                 if attribute == "db_location_selection":
@@ -340,9 +420,10 @@ class MiedaDevice(threading.Thread):
 
             if self._lua_runtime is not None:
                 try:
-                    if set_cmd := self._lua_runtime.build_control(nested_status, status=status_for_lua):
-                        await self._build_send(set_cmd)
-                        return
+                    if set_cmd := await self._lua_runtime.async_build_control(
+                        nested_status, status=status_for_lua
+                    ):
+                        return await self._build_send(set_cmd)
                 except Exception as e:
                     MideaLogger.debug(f"LuaRuntimeError in set_attribute {nested_status}: {repr(e)}")
                     traceback.print_exc()
@@ -350,7 +431,7 @@ class MiedaDevice(threading.Thread):
             cloud = self._cloud
             if cloud and hasattr(cloud, "send_device_control"):
                 if isinstance(cloud, MSmartHomeCloud):
-                    await cloud.send_device_control(
+                    return await cloud.send_device_control(
                         appliance_code=self._device_id,
                         device_type=self.device_type,
                         sn=self.sn,
@@ -359,18 +440,21 @@ class MiedaDevice(threading.Thread):
                         control=nested_status,
                         status=status_for_lua)
                 elif isinstance(cloud, MeijuCloud):
-                    await cloud.send_device_control(self._device_id, control=nested_status, status=status_for_lua)
+                    return await cloud.send_device_control(self._device_id, control=nested_status, status=status_for_lua)
+            return False
+        return True
 
-    async def set_attributes(self, attributes):
+    async def set_attributes(self, attributes) -> bool:
+        """下发控制。返回控制是否送达（云端确认/设备应答），供调用方上报失败。"""
         new_status = {}
         for attr in self._centralized:
             new_status[attr] = self._attributes.get(attr)
         has_new = False
         for attribute, value in attributes.items():
-            if attribute in self._attributes.keys() or attribute in LAMP_CONTROL_KEYS:
+            if self._has_attribute(attribute):
                 has_new = True
                 new_status[attribute] = value
-    
+
         # 针对T0xD9复式洗衣机，根据 db_location_selection 调整 db_location
         if self._device_type == 0xD9:
             if "db_location_selection" in attributes:
@@ -383,13 +467,14 @@ class MiedaDevice(threading.Thread):
         # Convert dot-notation attributes to nested structure for transmission
         nested_status = self._convert_to_nested_structure(new_status)
         status_for_lua = self._status_for_lua_control(new_status)
-        
+
         if has_new:
             if self._lua_runtime is not None:
                 try:
-                    if set_cmd := self._lua_runtime.build_control(nested_status, status=status_for_lua):
-                        await self._build_send(set_cmd)
-                        return
+                    if set_cmd := await self._lua_runtime.async_build_control(
+                        nested_status, status=status_for_lua
+                    ):
+                        return await self._build_send(set_cmd)
                 except Exception as e:
                     MideaLogger.debug(f"LuaRuntimeError in set_attributes {nested_status}: {repr(e)}")
                     traceback.print_exc()
@@ -397,7 +482,7 @@ class MiedaDevice(threading.Thread):
             cloud = self._cloud
             if cloud and hasattr(cloud, "send_device_control"):
                 if isinstance(cloud, MSmartHomeCloud):
-                    await cloud.send_device_control(
+                    return await cloud.send_device_control(
                         appliance_code=self._device_id,
                         device_type=self.device_type,
                         sn=self.sn,
@@ -406,23 +491,27 @@ class MiedaDevice(threading.Thread):
                         control=nested_status,
                         status=status_for_lua)
                 elif isinstance(cloud, MeijuCloud):
-                    await cloud.send_device_control(self._device_id, control=nested_status, status=status_for_lua)
+                    return await cloud.send_device_control(self._device_id, control=nested_status, status=status_for_lua)
+            return False
+        return True
 
     def set_ip_address(self, ip_address):
         MideaLogger.debug(f"Update IP address to {ip_address}")
         self._ip_address = ip_address
         self.close_socket()
 
-    def send_command(self, cmd_type, cmd_body: bytearray):
+    async def send_command(self, cmd_type, cmd_body: bytearray) -> bool:
+        """Send a custom MessageQuestCustom command via cloud/local transport."""
         cmd = MessageQuestCustom(self._device_type, cmd_type, cmd_body)
         try:
-            self._build_send(cmd.serialize().hex())
+            return await self._build_send(cmd.serialize().hex())
         except socket.error as e:
             MideaLogger.debug(
                 f"Interface send_command failure, {repr(e)}, "
                 f"cmd_type: {cmd_type}, cmd_body: {cmd_body.hex()}",
                 self._device_id
             )
+            return False
 
     def register_update(self, update):
         self._updates.append(update)
@@ -463,13 +552,20 @@ class MiedaDevice(threading.Thread):
         data = self._security.encode_8370(data, msg_type)
         self._send_message_v2(data)
 
-    async def _build_send(self, cmd: str):
+    async def _build_send(self, cmd: str) -> bool:
         MideaLogger.debug(f"Sending: {cmd.lower()}")
         bytes_cmd = bytes.fromhex(cmd)
-        await self._send_message(bytes_cmd)
+        return await self._send_message(bytes_cmd)
 
-    async def refresh_status(self):
+    async def refresh_status(self) -> bool:
+        """刷新设备状态。返回是否有任一查询取得了数据（用于可用性判断）。"""
+        any_success = False
+        attempted = False
         for query in self._queries:
+            query_sig = self._query_signature(query)
+            if query_sig in self._skipped_queries:
+                continue
+
             # 针对T0xD9复式洗衣机，根据 db_position 动态调整 db_location
             actual_query = query.copy() if isinstance(query, dict) else query
             if self._device_type == 0xD9 and isinstance(actual_query, dict):
@@ -481,6 +577,7 @@ class MiedaDevice(threading.Thread):
 
             cloud = self._cloud
             if cloud and hasattr(cloud, "get_device_status"):
+                attempted = True
                 if isinstance(cloud, MSmartHomeCloud):
                     if status := await cloud.get_device_status(
                         appliance_code=self._device_id,
@@ -491,10 +588,18 @@ class MiedaDevice(threading.Thread):
                         query=actual_query
                     ):
                         self._parse_cloud_message(status)
+                        any_success = True
+                    elif cloud.lua_status_analysis_error:
+                        self._skipped_queries.add(query_sig)
+                        MideaLogger.warning(
+                            f"Cloud lua analysis exception for query {query}, "
+                            f"skip further retries. msg={cloud.lua_status_analysis_msg}"
+                        )
                     else:
                         if self._lua_runtime is not None:
-                            if query_cmd := self._lua_runtime.build_query(actual_query):
-                                await self._build_send(query_cmd)
+                            if query_cmd := await self._lua_runtime.async_build_query(actual_query):
+                                if await self._build_send(query_cmd):
+                                    any_success = True
 
                 elif isinstance(cloud, MeijuCloud):
                     if status := await cloud.get_device_status(
@@ -502,10 +607,21 @@ class MiedaDevice(threading.Thread):
                         query=actual_query
                     ):
                         self._parse_cloud_message(status)
+                        any_success = True
+                    elif cloud.lua_status_analysis_error:
+                        self._skipped_queries.add(query_sig)
+                        MideaLogger.warning(
+                            f"Cloud lua analysis exception for query {query}, "
+                            f"skip further retries. msg={cloud.lua_status_analysis_msg}"
+                        )
                     else:
                         if self._lua_runtime is not None:
-                            if query_cmd := self._lua_runtime.build_query(actual_query):
-                                await self._build_send(query_cmd)
+                            if query_cmd := await self._lua_runtime.async_build_query(actual_query):
+                                if await self._build_send(query_cmd):
+                                    any_success = True
+
+        # 没有执行任何云端查询时（如查询全部被跳过）不算失败
+        return any_success or not attempted
 
 
     def _parse_cloud_message(self, status, update=True):
@@ -588,15 +704,21 @@ class MiedaDevice(threading.Thread):
                             self._update_all(new_status)
         return ParseMessageResult.SUCCESS
 
-    async def _send_message(self, data):
+    async def _send_message(self, data) -> bool:
+        """经云端透传发送。返回设备是否给出了应答（用于失败上报）。"""
         if reply := await self._cloud.send_cloud(self._device_id, data):
-            if reply_dec := self._lua_runtime.decode_status(dec_string_to_bytes(reply).hex()):
-                MideaLogger.debug(f"Decoded: {reply_dec}")
-                result = self._parse_cloud_message(reply_dec, update=False)
-                if result == ParseMessageResult.ERROR:
-                    MideaLogger.debug(f"Message 'ERROR' received")
-                elif result == ParseMessageResult.SUCCESS:
-                    timeout_counter = 0
+            if self._lua_runtime is not None:
+                if reply_dec := await self._lua_runtime.async_decode_status(
+                    dec_string_to_bytes(reply).hex()
+                ):
+                    MideaLogger.debug(f"Decoded: {reply_dec}")
+                    result = self._parse_cloud_message(reply_dec, update=False)
+                    if result == ParseMessageResult.ERROR:
+                        MideaLogger.debug(f"Message 'ERROR' received")
+                    elif result == ParseMessageResult.SUCCESS:
+                        timeout_counter = 0
+            return True
+        return False
 
     # if self._protocol == 3:
     #     self._send_message_v3(data, msg_type=MSGTYPE_ENCRYPTED_REQUEST)

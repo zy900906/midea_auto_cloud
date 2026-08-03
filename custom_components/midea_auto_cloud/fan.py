@@ -69,6 +69,8 @@ class MideaFanEntity(MideaEntity, FanEntity):
         else:
             self._key_speeds = speeds_config
         self._key_oscillate = self._config.get("oscillate")
+        # 部分风扇摇头开值为 default/diy，而非 on（如 T0xFA lr_shake_switch）
+        self._oscillate_rationale = self._config.get("oscillate_rationale") or self._rationale
         self._key_directions = self._config.get("directions")
         self._attr_speed_count = len(self._key_speeds) if self._key_speeds else 0
         self._current_preset_mode = None
@@ -83,11 +85,19 @@ class MideaFanEntity(MideaEntity, FanEntity):
             features |= FanEntityFeature.PRESET_MODE
         if self._current_speeds is not None and len(self._current_speeds) > 0:
             features |= FanEntityFeature.SET_SPEED
-        if self._key_oscillate is not None:
+        if self._key_oscillate is not None and self._oscillate_supported():
             features |= FanEntityFeature.OSCILLATE
         if self._key_directions is not None and len(self._key_directions) > 0:
             features |= FanEntityFeature.DIRECTION
         return features
+
+    def _oscillate_supported(self) -> bool:
+        """Show oscillate only when device reports capability or state attribute."""
+        en_key = f"en_{self._key_oscillate}"
+        en_val = self._get_nested_value(en_key)
+        if en_val is not None:
+            return self._get_status_on_off(en_key)
+        return self._get_nested_value(self._key_oscillate) is not None
 
     @property
     def is_on(self) -> bool:
@@ -151,7 +161,20 @@ class MideaFanEntity(MideaEntity, FanEntity):
 
     @property
     def oscillating(self):
-        return self._get_status_on_off(self._key_oscillate)
+        if self._key_oscillate is None:
+            return False
+        value = self._get_nested_value(self._key_oscillate)
+        if value is None:
+            return False
+        rationale = self._oscillate_rationale
+        off_value = rationale[0] if rationale else "off"
+        if value == off_value or value in ("invalid", "unknown"):
+            return False
+        try:
+            return bool(rationale.index(value))
+        except ValueError:
+            # diy/normal 等非 off 状态均视为摇头开启
+            return True
 
     @property
     def current_direction(self):
@@ -270,8 +293,10 @@ class MideaFanEntity(MideaEntity, FanEntity):
             await self.async_set_attributes(new_status)
 
     async def async_oscillate(self, oscillating: bool):
-        if self.oscillating != oscillating:
-            await self._async_set_status_on_off(self._key_oscillate, oscillating)
+        if self._key_oscillate is None or self.oscillating == oscillating:
+            return
+        rationale = self._oscillate_rationale
+        await self.async_set_attribute(self._key_oscillate, rationale[int(oscillating)])
 
     async def async_set_direction(self, direction: str):
         if not self._key_directions:
