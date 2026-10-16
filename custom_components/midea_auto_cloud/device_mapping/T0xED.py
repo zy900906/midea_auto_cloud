@@ -5,7 +5,7 @@ from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.components.switch import SwitchDeviceClass
 
 DEVICE_MAPPING = {
-    "default": {
+    "default_water_purifier": {
         "rationale": ["off", "on"],
         "queries": [{}],
         "centralized": ["custom_temperature_1"],
@@ -16,7 +16,15 @@ DEVICE_MAPPING = {
                         "start": {"heat_start": 1},
                         "stop": {"heat_start": 0}
                     },
-                }
+                },
+                "cur_quantify": {
+                    "options": {
+                        "off_quantify": {"cur_quantify": 0},
+                        "small_amount": {"cur_quantify": 21},
+                        "normal_amount": {"cur_quantify": 22},
+                        "large_amount": {"cur_quantify": 23},
+                    }
+                },
             },
             Platform.NUMBER: {
                 "custom_temperature_1": {
@@ -37,6 +45,24 @@ DEVICE_MAPPING = {
                     "command": {
                         "keep_warm": "on",
                     }
+                },
+                "quantify_21": {
+                    "min": 500,
+                    "max": 5000,
+                    "step": 500,
+                    "unit_of_measurement": "mL"
+                },
+                "quantify_22": {
+                    "min": 500,
+                    "max": 5000,
+                    "step": 500,
+                    "unit_of_measurement": "mL"
+                },
+                "quantify_23": {
+                    "min": 500,
+                    "max": 5000,
+                    "step": 500,
+                    "unit_of_measurement": "mL"
                 },
             },
             Platform.LOCK: {
@@ -221,10 +247,12 @@ DEVICE_MAPPING = {
                     "device_class": SensorDeviceClass.ENUM,
                 },
                 "life_1": {
+                    "translation_key": "life_fcb",
                     "device_class": SensorDeviceClass.BATTERY,
                     "unit_of_measurement": PERCENTAGE,
                 },
                 "life_2": {
+                    "translation_key": "life_ro",
                     "device_class": SensorDeviceClass.BATTERY,
                     "unit_of_measurement": PERCENTAGE,
                 },
@@ -238,116 +266,6 @@ DEVICE_MAPPING = {
                     "unit_of_measurement": "mg/L",
                     "state_class": SensorStateClass.MEASUREMENT
                 },
-            }
-        }
-    },
-    "default_water_purifier": {
-        "rationale": ["off", "on"],
-        "entities": {
-            Platform.SWITCH: {
-                "wash": {
-                    "device_class": SwitchDeviceClass.SWITCH
-                }
-            },
-            Platform.SELECT: {
-                "no_obsolete_water": {
-                    "options": {
-                        "water_saving": {"no_obsolete_water": "off", "save_mode": "on"},
-                        "water_quality": {"no_obsolete_water": "on", "save_mode": "off"}
-                    }
-                },
-                "cur_quantify": {
-                    "options": {
-                        "off_quantify": {"cur_quantify": 0},
-                        "small_amount": {"cur_quantify": 21},
-                        "normal_amount": {"cur_quantify": 22},
-                        "large_amount": {"cur_quantify": 23},
-                    }
-                },
-                "first_custom_out_water_ml_0": {
-                    "options": {
-                        "none": {"first_custom_out_water_mode": 1},
-                        "500": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 500},
-                        "600": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 600},
-                        "700": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 700},
-                        "800": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 800},
-                        "900": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 900},
-                        "1000": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 1000},
-                        "1250": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 1250},
-                        "1500": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 1500},
-                        "1750": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 1750},
-                        "2000": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 2000},
-                        "2250": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 2250},
-                        "2500": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 2500},
-                        "3000": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 3000},
-                        "3500": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 3500},
-                        "4000": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 4000},
-                        "4500": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 4500},
-                        "5000": {"first_custom_out_water_mode": 0, "first_custom_out_water_ml": 5000}
-                    }
-                },
-                "first_custom_out_water_ml_1": {
-                    "options": {
-                        "none": {"first_custom_out_water_mode": 0},
-                        "500": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 500},
-                        "600": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 600},
-                        "700": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 700},
-                        "800": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 800},
-                        "900": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 900},
-                        "1000": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 1000},
-                        "1250": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 1250},
-                        "1500": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 1500},
-                        "1750": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 1750},
-                        "2000": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 2000},
-                        "2250": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 2250},
-                        "2500": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 2500},
-                        "3000": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 3000},
-                        "3500": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 3500},
-                        "4000": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 4000},
-                        "4500": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 4500},
-                        "5000": {"first_custom_out_water_mode": 1, "first_custom_out_water_ml": 5000}
-                    }
-                }
-            },
-            Platform.NUMBER: {
-                "quantify_21": {
-                    "min": 500,
-                    "max": 5000,
-                    "step": 500,
-                    "unit_of_measurement": "mL"
-                },
-                "quantify_22": {
-                    "min": 500,
-                    "max": 5000,
-                    "step": 500,
-                    "unit_of_measurement": "mL"
-                },
-                "quantify_23": {
-                    "min": 500,
-                    "max": 5000,
-                    "step": 500,
-                    "unit_of_measurement": "mL"
-                }
-            },
-            Platform.SENSOR: {
-                "in_tds": {
-                    "unit_of_measurement": "mg/L",
-                    "state_class": SensorStateClass.MEASUREMENT
-                },
-                "out_tds": {
-                    "unit_of_measurement": "mg/L",
-                    "state_class": SensorStateClass.MEASUREMENT
-                },
-                "life_1": {
-                    "unit_of_measurement": PERCENTAGE,
-                    "state_class": SensorStateClass.MEASUREMENT,
-                    "translation_key": "life_pcb"
-                },
-                "life_2": {
-                    "unit_of_measurement": PERCENTAGE,
-                    "state_class": SensorStateClass.MEASUREMENT,
-                    "translation_key": "life_ro"
-                }
             }
         }
     },
@@ -778,12 +696,14 @@ DEVICE_MAPPING = {
                     "translation_key": "out_tds"
                 },
                 "life_1": {
+                    "translation_key": "life_fcb",
                     "device_class": SensorDeviceClass.BATTERY,
                     "unit_of_measurement": "%",
                     "state_class": SensorStateClass.MEASUREMENT,
                     "translation_key": "life_1"
                 },
                 "life_2": {
+                    "translation_key": "life_ro",
                     "device_class": SensorDeviceClass.BATTERY,
                     "unit_of_measurement": "%",
                     "state_class": SensorStateClass.MEASUREMENT,
@@ -962,12 +882,14 @@ DEVICE_MAPPING = {
                     "translation_key": "out_tds",
                 },
                 "life_1": {
+                    "translation_key": "life_fcb",
                     "device_class": SensorDeviceClass.BATTERY,
                     "unit_of_measurement": PERCENTAGE,
                     "state_class": SensorStateClass.MEASUREMENT,
                     "translation_key": "life_ro",
                 },
                 "life_2": {
+                    "translation_key": "life_ro",
                     "device_class": SensorDeviceClass.BATTERY,
                     "unit_of_measurement": PERCENTAGE,
                     "state_class": SensorStateClass.MEASUREMENT,
@@ -991,5 +913,210 @@ DEVICE_MAPPING = {
                 },
             },
         },
+    },
+    # 软净一体机 (sn8=63600118, subtype=845, Device ID 210006740157552)
+    "63600118": {
+        "rationale": ["off", "on"],
+        "queries": [{}],
+        "entities": {
+            Platform.SWITCH: {
+                "soften": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "soften",
+                },
+                "germicidal": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "germicidal",
+                },
+                "drainage": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "drainage",
+                },
+                "filter_wash": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "filter_wash",
+                },
+                "filter_self_cleaning": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "filter_self_cleaning",
+                },
+                "autoclean_ctrl": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "autoclean_ctrl",
+                },
+                "antifreeze": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "antifreeze",
+                },
+                "cool": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "cool",
+                },
+                "extreme_mode": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "extreme_mode",
+                },
+                "auto_fill_water": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "auto_fill_water",
+                },
+                "smart_ro_obsolete_water": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "smart_ro_obsolete_water",
+                },
+                "buzzer": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "buzzer",
+                },
+                "gesture": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "gesture",
+                },
+                "sleep": {
+                    "device_class": SwitchDeviceClass.SWITCH,
+                    "translation_key": "screen_off",
+                },
+            },
+            Platform.SELECT: {
+                "cur_quantify": {
+                    "options": {
+                        "off_quantify": {"cur_quantify": 0},
+                        "small_amount": {"cur_quantify": 21},
+                        "normal_amount": {"cur_quantify": 22},
+                        "large_amount": {"cur_quantify": 23},
+                    },
+                    "translation_key": "cur_quantify",
+                },
+            },
+            Platform.NUMBER: {
+                "timing_regeneration_hour": {
+                    "min": 0,
+                    "max": 23,
+                    "step": 1,
+                    "unit_of_measurement": UnitOfTime.HOURS,
+                    "translation_key": "timing_regeneration_hour",
+                },
+                "timing_regeneration_min": {
+                    "min": 0,
+                    "max": 59,
+                    "step": 1,
+                    "unit_of_measurement": UnitOfTime.MINUTES,
+                    "translation_key": "timing_regeneration_min",
+                },
+            },
+            Platform.BINARY_SENSOR: {
+                "full": {
+                    "device_class": BinarySensorDeviceClass.PROBLEM,
+                    "translation_key": "full",
+                },
+                "backflow": {
+                    "device_class": BinarySensorDeviceClass.PROBLEM,
+                    "translation_key": "backflow",
+                },
+                "chlorine_sterilization_error": {
+                    "device_class": BinarySensorDeviceClass.PROBLEM,
+                    "translation_key": "chlorine_sterilization_error",
+                },
+                "flowmeter_error": {
+                    "device_class": BinarySensorDeviceClass.PROBLEM,
+                    "translation_key": "flowmeter_error",
+                },
+                "stew_heat_status": {
+                    "device_class": BinarySensorDeviceClass.RUNNING,
+                    "translation_key": "stew_heat_status",
+                },
+                "bubble_status": {
+                    "device_class": BinarySensorDeviceClass.PROBLEM,
+                    "translation_key": "bubble_status",
+                },
+            },
+            Platform.SENSOR: {
+                "error": {
+                    "device_class": SensorDeviceClass.ENUM,
+                    "translation_key": "error",
+                },
+                "soft_available_big": {
+                    "unit_of_measurement": UnitOfVolume.LITERS,
+                    "state_class": SensorStateClass.MEASUREMENT,
+                    "translation_key": "soft_available_big",
+                },
+                "battery_voltage": {
+                    "device_class": SensorDeviceClass.VOLTAGE,
+                    "unit_of_measurement": UnitOfElectricPotential.VOLT,
+                    "state_class": SensorStateClass.MEASUREMENT,
+                    "translation_key": "battery_voltage",
+                },
+                "supply_voltage": {
+                    "device_class": SensorDeviceClass.VOLTAGE,
+                    "unit_of_measurement": UnitOfElectricPotential.VOLT,
+                    "state_class": SensorStateClass.MEASUREMENT,
+                    "translation_key": "supply_voltage",
+                },
+                "flushing_days": {
+                    "device_class": SensorDeviceClass.DURATION,
+                    "unit_of_measurement": UnitOfTime.DAYS,
+                    "state_class": SensorStateClass.MEASUREMENT,
+                    "translation_key": "flushing_days",
+                },
+                "days_since_last_regeneration": {
+                    "device_class": SensorDeviceClass.DURATION,
+                    "unit_of_measurement": UnitOfTime.DAYS,
+                    "state_class": SensorStateClass.MEASUREMENT,
+                    "translation_key": "days_since_last_regeneration",
+                },
+                "days_since_last_two_regeneration": {
+                    "device_class": SensorDeviceClass.DURATION,
+                    "unit_of_measurement": UnitOfTime.DAYS,
+                    "state_class": SensorStateClass.MEASUREMENT,
+                    "translation_key": "days_since_last_two_regeneration",
+                },
+                "standby_status": {
+                    "device_class": SensorDeviceClass.ENUM,
+                    "translation_key": "standby_status",
+                },
+                                "water_hardness": {
+                    "translation_key": "water_hardness",
+                    "unit_of_measurement": "mg/L",
+                    "state_class": SensorStateClass.MEASUREMENT,
+                },
+                "life_1": {
+                    "translation_key": "life_fcb",
+                    "unit_of_measurement": PERCENTAGE,
+                    "state_class": SensorStateClass.MEASUREMENT,
+                },
+                "life_2": {
+                    "translation_key": "life_ro",
+                    "unit_of_measurement": PERCENTAGE,
+                    "state_class": SensorStateClass.MEASUREMENT,
+                },
+            },
+        },
     }
+}
+
+
+# sn8 632009BF（MRC2878-1000G，subtype 965）：协议上报的 water_consumption 是 mL，
+# 而 default_water_purifier 块按 L 声明 → 数值放大 1000 倍。
+# 同族机型 632009EN / 632009C6 的块本就用 mL，故此处单独收口，不动共用块：
+# 复用 default_water_purifier，仅派生一个以 L 为单位的属性供实体使用。
+DEVICE_MAPPING["632009BF"] = {
+    **DEVICE_MAPPING["default_water_purifier"],
+    "calculate": {
+        "get": [
+            {"lvalue": "[water_consumption_l]", "rvalue": "float([water_consumption]) / 1000"}
+        ],
+    },
+    "entities": {
+        **DEVICE_MAPPING["default_water_purifier"]["entities"],
+        Platform.SENSOR: {
+            **DEVICE_MAPPING["default_water_purifier"]["entities"][Platform.SENSOR],
+            "water_consumption": {
+                # 取换算后的 L 值（原始属性 water_consumption 仍保留 mL 原值）
+                "attribute": "water_consumption_l",
+                "device_class": SensorDeviceClass.VOLUME,
+                "unit_of_measurement": UnitOfVolume.LITERS,
+                "state_class": SensorStateClass.TOTAL_INCREASING,
+            },
+        },
+    },
 }

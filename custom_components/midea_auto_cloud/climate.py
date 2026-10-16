@@ -171,7 +171,12 @@ class MideaClimateEntity(MideaEntity, ClimateEntity):
         if self._key_swing_modes is not None:
             features |= ClimateEntityFeature.SWING_MODE
         if self._key_fan_modes is not None and not self._fan_mode_locked():
-            features |= ClimateEntityFeature.FAN_MODE
+            if self.is_bath_heater and isinstance(self._key_fan_modes, dict):
+                # 浴霸：风速选项按当前模式嵌套（换气/吹风才有），其它模式隐藏
+                if self._bath_heater_fan_config() is not None:
+                    features |= ClimateEntityFeature.FAN_MODE
+            else:
+                features |= ClimateEntityFeature.FAN_MODE
         return features
 
     @property
@@ -248,16 +253,49 @@ class MideaClimateEntity(MideaEntity, ClimateEntity):
             return None
         return self._match_swing_option(options, str(current_value))
 
+    def _bath_heater_fan_config(self) -> dict | None:
+        """Return the per-preset fan config ({key, options}) for bath heaters.
+
+        fan_modes may be nested per preset mode (ventilation/blowing each map
+        to a different attribute key), mirroring the swing_modes structure.
+        Returns None when the current preset has no fan-speed options.
+        """
+        if not (self.is_bath_heater and isinstance(self._key_fan_modes, dict)):
+            return None
+        mode_config = self._key_fan_modes.get(self.preset_mode)
+        if mode_config and isinstance(mode_config, dict) and "options" in mode_config:
+            return mode_config
+        return None
+
     @property
     def target_temperature(self):
         if self._uses_temperature_range():
             return None
         if self._is_central_ac:
-            run_mode = self._get_nested_value(self._key_power) or "0"
-            if run_mode == "2":  # 制冷模式
-                return self._get_nested_value("cool_temp_set")
-            elif run_mode == "3":  # 制热模式
-                return self._get_nested_value("cool_temp_set")
+            run_mode = self._central_ac_run_mode()
+            if run_mode == 2:  # 制冷
+                return self._safe_convert_to_float(
+                    self._get_nested_value("cool_temp_set")
+                )
+            if run_mode == 3:  # 制热
+                heat = self._safe_convert_to_float(
+                    self._get_nested_value("heat_temp_set")
+                )
+                # 部分机型未写入 heat_temp_set 时回退到制冷设定，避免显示空
+                if heat is not None and heat > 0:
+                    return heat
+                return self._safe_convert_to_float(
+                    self._get_nested_value("cool_temp_set")
+                )
+            if run_mode == 4:  # 自动：优先制冷设定，否则制热设定
+                cool = self._safe_convert_to_float(
+                    self._get_nested_value("cool_temp_set")
+                )
+                if cool is not None and cool > 0:
+                    return cool
+                return self._safe_convert_to_float(
+                    self._get_nested_value("heat_temp_set")
+                )
             return None
         if isinstance(self._key_target_temperature, dict):
             if self.is_bath_heater:
@@ -367,6 +405,11 @@ class MideaClimateEntity(MideaEntity, ClimateEntity):
     def fan_modes(self):
         if is_numeric_six_key_fan_mode_mapping(self._key_fan_modes):
             return NUMERIC_FAN_MODE_DISPLAY_ORDER
+        if self.is_bath_heater and isinstance(self._key_fan_modes, dict):
+            config = self._bath_heater_fan_config()
+            if config is not None:
+                return list(config["options"].keys())
+            return []
         return list(self._key_fan_modes.keys())
 
     @property
@@ -374,6 +417,14 @@ class MideaClimateEntity(MideaEntity, ClimateEntity):
         if is_numeric_six_key_fan_mode_mapping(self._key_fan_modes):
             selected = self._dict_get_selected(fan_mode_lookup_mapping(self._key_fan_modes))
             return selected
+        if self.is_bath_heater and isinstance(self._key_fan_modes, dict):
+            config = self._bath_heater_fan_config()
+            if config is None:
+                return None
+            current_value = self._get_nested_value(config.get("key"))
+            if current_value is None:
+                return None
+            return self._match_swing_option(config["options"], str(current_value))
         return self._dict_get_selected(self._key_fan_modes)
 
     @property
@@ -471,6 +522,16 @@ class MideaClimateEntity(MideaEntity, ClimateEntity):
                 return HVACAction.COOLING
         return HVACAction.COOLING
 
+    def _central_ac_run_mode(self) -> int:
+        """Parse T0x21 run_mode as int (cloud may report str or number)."""
+        raw = self._get_nested_value(self._key_power)
+        if raw is None:
+            return 0
+        try:
+            return int(float(raw))
+        except (TypeError, ValueError):
+            return 0
+
     @property
     def hvac_action(self):
         """What the equipment is actually doing (running vs idle)."""
@@ -482,6 +543,24 @@ class MideaClimateEntity(MideaEntity, ClimateEntity):
             return HVACAction.FAN
         elif current_mode == HVACMode.DRY:
             return HVACAction.DRYING
+
+        # T0x21 无压缩机/风机运行态属性，室温 vs 设定的猜测容易把制热/自动标成「空闲」；
+        # 按当前模式回报动作，与美居展示一致。
+        if self._is_central_ac:
+            if current_mode == HVACMode.HEAT:
+                return HVACAction.HEATING
+            if current_mode == HVACMode.COOL:
+                return HVACAction.COOLING
+            if current_mode == HVACMode.AUTO:
+                current_temp = self.current_temperature
+                target_temp = self.target_temperature
+                if current_temp is not None and target_temp is not None:
+                    if current_temp < target_temp - 0.5:
+                        return HVACAction.HEATING
+                    if current_temp > target_temp + 0.5:
+                        return HVACAction.COOLING
+                return HVACAction.IDLE
+            return HVACAction.IDLE
 
         if (self._key_action_compressor is None and self._key_action_fan is None
                 and self._key_action_direction is None):
@@ -564,12 +643,15 @@ class MideaClimateEntity(MideaEntity, ClimateEntity):
             if ATTR_TEMPERATURE not in kwargs:
                 return
             temperature = kwargs.get(ATTR_TEMPERATURE)
-            run_mode = self._get_nested_value(self._key_power) or "0"
+            run_mode = self._central_ac_run_mode()
             control = {}
 
-            if run_mode == "2":  # 制冷模式
+            if run_mode == 2:  # 制冷模式
                 control["cooling_temp"] = str(temperature)
-            elif run_mode == "3":  # 制热模式
+            elif run_mode == 3:  # 制热模式
+                control["cooling_temp"] = str(temperature)
+                control["heating_temp"] = str(temperature)
+            elif run_mode == 4:  # 自动：同时写入冷热设定
                 control["cooling_temp"] = str(temperature)
                 control["heating_temp"] = str(temperature)
 
@@ -620,15 +702,6 @@ class MideaClimateEntity(MideaEntity, ClimateEntity):
             new_status = dict(self._key_hvac_modes.get(hvac_mode) or {})
         else:
             new_status = {}
-            # 调温时显式带上当前开关/模式，避免仅发 temperature 时状态回读匹配失败 (#211)
-            if self._key_power:
-                power = self._get_nested_value(self._key_power)
-                if power is not None:
-                    new_status[self._key_power] = power
-            if self._key_pre_mode:
-                mode = self._get_nested_value(self._key_pre_mode)
-                if mode is not None:
-                    new_status[self._key_pre_mode] = mode
         if isinstance(self._key_target_temperature, list):
             if len(self._key_target_temperature) == 2:
                 new_status[self._key_target_temperature[0]] = temp_int
@@ -650,6 +723,14 @@ class MideaClimateEntity(MideaEntity, ClimateEntity):
         if self._fan_mode_locked():
             # Fan speed is device-managed in these hvac modes (e.g. auto); the
             # control is hidden, so ignore stray service calls rather than write.
+            return
+        if self.is_bath_heater and isinstance(self._key_fan_modes, dict):
+            config = self._bath_heater_fan_config()
+            if config is None:
+                return
+            new_status = (config.get("options") or {}).get(fan_mode)
+            if new_status:
+                await self.async_set_attributes(new_status)
             return
         fan_mode = normalize_fan_mode_input(self._key_fan_modes, fan_mode)
         fan_modes = fan_mode_lookup_mapping(self._key_fan_modes)

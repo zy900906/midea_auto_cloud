@@ -262,6 +262,15 @@
       "storage_ice_home_door_state": {
         "name": "Storage Ice Home Door State"
       },
+      "ice_machine_full": {
+        "name": "Ice Machine Full"
+      },
+      "storage_ice_full_tips": {
+        "name": "Storage Ice Full"
+      },
+      "is_have_freezing_ice": {
+        "name": "Has Freezing Ice"
+      },
       "top_hot": {
         "name": "Top Hot"
       },
@@ -375,6 +384,42 @@
       },
       "tank_status": {
         "name": "Tank Status"
+      },
+      "water_box": {
+        "name": "Water Box"
+      },
+      "smelly_trigger": {
+        "name": "Odor Detected"
+      },
+      "dehumidity_trigger": {
+        "name": "Dehumidifying"
+      },
+      "current_radar_status": {
+        "name": "Radar Occupancy"
+      },
+      "body_induction": {
+        "name": "Human Detection"
+      },
+      "backflow": {
+        "name": "Backflow"
+      },
+      "stew_heat_status": {
+        "name": "Stew heating"
+      },
+      "bubble_status": {
+        "name": "Bubble detected"
+      },
+      "full": {
+        "name": "Tank full"
+      },
+      "door_auto_open": {
+        "name": "Auto Door Open"
+      },
+      "camera_status": {
+        "name": "Camera Status"
+      },
+      "live_video_status": {
+        "name": "Live Video Status"
       }
     },
     "climate": {
@@ -592,7 +637,8 @@
               "none": "none",
               "eco": "eco",
               "comfort": "comfort",
-              "boost": "boost"
+              "boost": "boost",
+              "sleep": "Sleep"
             }
           }
         },
@@ -622,6 +668,48 @@
       },
       "heating": {
         "name": "Heating"
+      },
+      "bath_heater": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "close": "Off",
+              "heating": "Heating",
+              "bath": "Bath",
+              "ventilation": "Ventilation",
+              "drying": "Drying",
+              "blowing": "Blowing"
+            }
+          },
+          "preset_modes": {
+            "state": {
+              "close": "Off",
+              "heating": "Heating",
+              "bath": "Bath",
+              "ventilation": "Ventilation",
+              "drying": "Drying",
+              "blowing": "Blowing"
+            }
+          },
+          "swing_mode": {
+            "state": {
+              "swing": "Swing",
+              "heating": "Heating",
+              "bath": "Bath",
+              "ventilation": "Ventilation",
+              "drying": "Drying"
+            }
+          },
+          "fan_mode": {
+            "state": {
+              "silent": "Silent",
+              "soft_wind": "Soft Wind",
+              "standard": "Standard",
+              "strong": "Strong",
+              "storm": "Storm"
+            }
+          }
+        }
       }
     },
     "cover": {
@@ -651,6 +739,14 @@
       }
     },
     "select": {
+      "smelly_threshold": {
+        "name": "Odor Threshold",
+        "state": {
+          "high": "High",
+          "medium": "Medium",
+          "low": "Low"
+        }
+      },
       "heating_capacity": {
         "name": "Heating Tank",
         "state": {
@@ -1038,7 +1134,13 @@
         "name": "Gesture"
       },
       "gesture_value": {
-        "name": "Gesture Value"
+        "name": "Gesture Action",
+        "state": {
+          "power_toggle": "Power Toggle",
+          "adjust_speed": "Adjust Speed",
+          "light_toggle": "Light Toggle",
+          "power_and_speed": "Power & Speed"
+        }
       },
       "gesture_sensitivity_value": {
         "name": "Gesture Sensitivity Value"
@@ -1204,7 +1306,50 @@
           "hanfu_spring_summer": "hanfu spring summer",
           "hanfu_autumn_winter": "hanfu autumn winter",
           "skin_care_wash": "skin care wash",
-          "hanfu_wash": "hanfu wash"
+          "hanfu_wash": "hanfu wash",
+          "bedsheet": "Bedsheet",
+          "plush": "Plush",
+          "dehumidify": "Dehumidify",
+          "cold_air_fresh_air": "Cold Air Fresh",
+          "hot_air_dry": "Hot Air Dry",
+          "quick_dry": "Quick Dry",
+          "low_temp_dry": "Low Temp Dry",
+          "eco_dry": "Eco Dry",
+          "quick_dry_30": "Quick Dry 30min",
+          "towel": "Towel",
+          "intelligent_dry": "Intelligent Dry",
+          "steam_care": "Steam Care",
+          "fixed_time_dry": "Timed Dry",
+          "night_dry": "Night Dry",
+          "bracket_dry": "Bracket Dry",
+          "western_trouser": "Trousers",
+          "dehumidification": "Dehumidification",
+          "smart_dry": "Smart Dry",
+          "four_piece_suit": "Four-piece Suit",
+          "warm_clothes": "Warm Clothes",
+          "quick_dry_20": "Quick Dry 20min",
+          "steam_sterilize": "Steam Sterilize",
+          "big_60": "Bulky 60min",
+          "steam_no_iron": "Steam No-Iron",
+          "bed_clothes": "Bedding",
+          "little_fast_dry": "Little Fast Dry",
+          "small_piece_dry": "Small Piece Dry",
+          "big_dry": "Bulky Dry",
+          "wool_nurse": "Wool Care",
+          "sun_quilt": "Sun Quilt",
+          "fresh_remove_smell": "Fresh Deodorize",
+          "bucket_self_clean": "Drum Self-clean",
+          "sterilize": "Sterilize",
+          "heavy_duty": "Heavy Duty",
+          "towel_warmer": "Towel Warmer",
+          "air_fluff": "Air Fluff",
+          "delicates": "Delicates",
+          "time_drying_30": "Timed 30min",
+          "time_drying_60": "Timed 60min",
+          "time_drying_90": "Timed 90min",
+          "dry_softnurse": "Soft Care Dry",
+          "uniforms": "Uniforms",
+          "remove_electricity": "Anti-static"
         }
       },
       "query_type": {
@@ -1538,7 +1683,14 @@
         }
       },
       "wind_pressure": {
-        "name": "Wind Pressure"
+        "name": "Wind Pressure",
+        "state": {
+          "off": "Off",
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High",
+          "extreme": "Extreme"
+        }
       },
       "hot_style": {
         "name": "Heating Style"
@@ -1655,6 +1807,12 @@
           "4": "Medium High",
           "5": "High"
         }
+      },
+      "temperature_level": {
+        "name": "Temperature Level"
+      },
+      "smell": {
+        "name": "Deodorize"
       }
     },
     "sensor": {
@@ -2902,11 +3060,74 @@
       },
       "indoor_humidity": {
         "name": "Indoor Humidity"
+      },
+      "keep_fresh_status": {
+        "name": "Keep Fresh Status"
+      },
+      "ventilation_speed": {
+        "name": "Ventilation Speed"
+      },
+      "smelly_level": {
+        "name": "Odor Level"
+      },
+      "current_height": {
+        "name": "Drop Height"
+      },
+      "location_status": {
+        "name": "Position Status"
+      },
+      "standby_status": {
+        "name": "Standby status"
+      },
+      "life_fcb": {
+        "name": "FCB filter remaining life"
+      },
+      "life_ro": {
+        "name": "RO filter remaining life"
+      },
+      "operator": {
+        "name": "Operator"
+      },
+      "additional": {
+        "name": "Additional Function"
+      },
+      "wash_region": {
+        "name": "Wash Region"
+      },
+      "wind_speed_real": {
+        "name": "Real Wind Speed"
+      },
+      "temperature_above": {
+        "name": "Upper Tube Temperature"
+      },
+      "temperature_underside": {
+        "name": "Lower Tube Temperature"
+      },
+      "fire_power": {
+        "name": "Fire Power"
+      },
+      "work_mode": {
+        "name": "Work Mode"
+      },
+      "mouthfeel": {
+        "name": "Mouthfeel"
+      },
+      "execute": {
+        "name": "Execution Status"
       }
     },
     "light": {
       "light": {
         "name": "Light"
+      },
+      "main_light": {
+        "name": "Ceiling Light"
+      },
+      "night_light": {
+        "name": "Night Light"
+      },
+      "common_light": {
+        "name": "Ceiling Light"
       }
     },
     "lock": {
@@ -3106,6 +3327,39 @@
       },
       "area2_gear": {
         "name": "Double Area Area 2 Gear"
+      },
+      "smell_time": {
+        "name": "Deodorize Time"
+      },
+      "bath_temperature": {
+        "name": "Bath Temperature"
+      },
+      "heating_temperature": {
+        "name": "Heating Temperature"
+      },
+      "main_light_brightness": {
+        "name": "Main Light Brightness"
+      },
+      "custom_height": {
+        "name": "Drying Height"
+      },
+      "timing_light_off": {
+        "name": "Light-off Delay"
+      },
+      "voice_set": {
+        "name": "Voice Volume"
+      },
+      "timing_regeneration_hour": {
+        "name": "Scheduled regeneration (hour)"
+      },
+      "timing_regeneration_min": {
+        "name": "Scheduled regeneration (minute)"
+      },
+      "dry_time_setting": {
+        "name": "Dry Time"
+      },
+      "quick_prepare_food_angle": {
+        "name": "Prepare Food Angle"
       }
     },
     "fan": {
@@ -3116,7 +3370,18 @@
             "state": {
               "baby": "Baby Wind",
               "normal": "Normal Wind",
+              "natural": "Natural Wind",
               "sleep": "Sleep Wind",
+              "comfort": "Comfort Wind",
+              "mute": "Silent",
+              "feel": "Induction",
+              "storm": "Circulation",
+              "strong": "Strong",
+              "soft": "Soft",
+              "customize": "Customize",
+              "warm": "Warm",
+              "smart": "Smart",
+              "ecology": "Ecology",
               "self_selection": "Self Selection",
               "sleeping_wind": "Sleep Wind",
               "ai_smart": "Ecological Wind",
@@ -3132,6 +3397,20 @@
             "state": {
               "auto": "Auto",
               "manual": "Manual"
+            }
+          }
+        }
+      },
+      "fresh_air_fan": {
+        "name": "Fresh Air",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "heat_exchange": "Heat Exchange",
+              "rough_in": "Supply Air Strong",
+              "smooth_in": "Supply Air",
+              "rough_out": "Exhaust Air Strong",
+              "smooth_out": "Exhaust Air"
             }
           }
         }
@@ -4313,6 +4592,72 @@
       },
       "water_pump": {
         "name": "Water Pump"
+      },
+      "dry_night": {
+        "name": "Night Dry"
+      },
+      "remove_static_electricity": {
+        "name": "Anti-static"
+      },
+      "intelligent_prevent_damp": {
+        "name": "Smart Anti-damp"
+      },
+      "flash_dry": {
+        "name": "Flash Dry"
+      },
+      "anion_enable": {
+        "name": "Anion"
+      },
+      "smelly_enable": {
+        "name": "Odor Detection"
+      },
+      "set_light_off": {
+        "name": "Light-off Delay Switch"
+      },
+      "mic_switch": {
+        "name": "Microphone"
+      },
+      "horn_switch": {
+        "name": "Prompt Tone"
+      },
+      "wakeup_free_switch": {
+        "name": "Wake-word Free"
+      },
+      "continuous_dialogue_switch": {
+        "name": "Continuous Dialogue"
+      },
+      "remote_control_broadcast_switch": {
+        "name": "Remote Broadcast"
+      },
+      "lift_up_switch": {
+        "name": "Lift-up to Rise"
+      },
+      "wifi_light_switch": {
+        "name": "Network Indicator"
+      },
+      "filter_self_cleaning": {
+        "name": "Filter self-cleaning"
+      },
+      "extreme_mode": {
+        "name": "Extreme mode"
+      },
+      "auto_fill_water": {
+        "name": "Auto fill water"
+      },
+      "smart_ro_obsolete_water": {
+        "name": "Smart RO wastewater ratio"
+      },
+      "gesture": {
+        "name": "Gesture control"
+      },
+      "prepare_food": {
+        "name": "Prepare Food"
+      },
+      "quick_fry": {
+        "name": "Quick Fry"
+      },
+      "fengguan_remove_odor": {
+        "name": "Duct Odor Removal"
       }
     },
     "text": {

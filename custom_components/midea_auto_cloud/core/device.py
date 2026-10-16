@@ -236,6 +236,16 @@ class MiedaDevice(threading.Thread):
             return tuple(sorted(query.items()))
         return (("__raw__", query),)
 
+    @staticmethod
+    def _normalize_status_query(device_type: int, query):
+        """T0xCF lua 不接受空 query，运行时补默认 query_type。"""
+        if device_type != 0xCF or not isinstance(query, dict):
+            return query
+        normalized = query.copy()
+        if not normalized.get("query_type"):
+            normalized["query_type"] = "0x11"
+        return normalized
+
     def set_centralized(self, centralized: list):
         self._centralized = centralized
 
@@ -275,6 +285,18 @@ class MiedaDevice(threading.Thread):
             return inner
         return None
 
+    @staticmethod
+    def _coerce_calc_val(val: Any) -> Any:
+        if isinstance(val, str):
+            val_strip = val.strip()
+            try:
+                if "." in val_strip:
+                    return float(val_strip)
+                return int(val_strip)
+            except (ValueError, TypeError):
+                return val
+        return val
+
     def _apply_calculate_get(self, new_status: dict) -> None:
         for c in self._calculate_get:
             lvalue = c.get("lvalue")
@@ -283,10 +305,9 @@ class MiedaDevice(threading.Thread):
                 continue
             if not self._calculate_inputs_ready(rvalue):
                 continue
-            calculate_str1 = (
-                f"{lvalue.replace('[', 'self._attributes[').replace(']', '\"]')} = "
-                f"{rvalue.replace('[', 'self._attributes[').replace(']', '\"]')}"
-            ).replace("[", "[\"")
+            lval_str = lvalue.replace("[", 'self._attributes["').replace("]", '"]')
+            rval_str = rvalue.replace("[", 'self._coerce_calc_val(self._attributes.get("').replace("]", '"))')
+            calculate_str1 = f"{lval_str} = {rval_str}"
             try:
                 exec(calculate_str1)
             except Exception:
@@ -568,6 +589,7 @@ class MiedaDevice(threading.Thread):
 
             # 针对T0xD9复式洗衣机，根据 db_position 动态调整 db_location
             actual_query = query.copy() if isinstance(query, dict) else query
+            actual_query = self._normalize_status_query(self._device_type, actual_query)
             if self._device_type == 0xD9 and isinstance(actual_query, dict):
                 # 根据 db_position 调整 db_location
                 calculated_location = self._adjust_t0xd9_db_location_based_on_position(actual_query)
@@ -578,47 +600,54 @@ class MiedaDevice(threading.Thread):
             cloud = self._cloud
             if cloud and hasattr(cloud, "get_device_status"):
                 attempted = True
-                if isinstance(cloud, MSmartHomeCloud):
-                    if status := await cloud.get_device_status(
-                        appliance_code=self._device_id,
-                        device_type=self.device_type,
-                        sn=self.sn,
-                        model_number=self.subtype,
-                        manufacturer_code=self._manufacturer_code,
-                        query=actual_query
-                    ):
-                        self._parse_cloud_message(status)
-                        any_success = True
-                    elif cloud.lua_status_analysis_error:
-                        self._skipped_queries.add(query_sig)
-                        MideaLogger.warning(
-                            f"Cloud lua analysis exception for query {query}, "
-                            f"skip further retries. msg={cloud.lua_status_analysis_msg}"
-                        )
-                    else:
-                        if self._lua_runtime is not None:
-                            if query_cmd := await self._lua_runtime.async_build_query(actual_query):
-                                if await self._build_send(query_cmd):
-                                    any_success = True
+                try:
+                    if isinstance(cloud, MSmartHomeCloud):
+                        if status := await cloud.get_device_status(
+                            appliance_code=self._device_id,
+                            device_type=self.device_type,
+                            sn=self.sn,
+                            model_number=self.subtype,
+                            manufacturer_code=self._manufacturer_code,
+                            query=actual_query
+                        ):
+                            self._parse_cloud_message(status)
+                            any_success = True
+                        elif cloud.lua_status_analysis_error:
+                            self._skipped_queries.add(query_sig)
+                            MideaLogger.warning(
+                                f"Cloud lua analysis exception for query {query}, "
+                                f"skip further retries. msg={cloud.lua_status_analysis_msg}"
+                            )
+                        else:
+                            if self._lua_runtime is not None:
+                                if query_cmd := await self._lua_runtime.async_build_query(actual_query):
+                                    if await self._build_send(query_cmd):
+                                        any_success = True
 
-                elif isinstance(cloud, MeijuCloud):
-                    if status := await cloud.get_device_status(
-                        appliance_code=self._device_id,
-                        query=actual_query
-                    ):
-                        self._parse_cloud_message(status)
-                        any_success = True
-                    elif cloud.lua_status_analysis_error:
-                        self._skipped_queries.add(query_sig)
-                        MideaLogger.warning(
-                            f"Cloud lua analysis exception for query {query}, "
-                            f"skip further retries. msg={cloud.lua_status_analysis_msg}"
-                        )
-                    else:
-                        if self._lua_runtime is not None:
-                            if query_cmd := await self._lua_runtime.async_build_query(actual_query):
-                                if await self._build_send(query_cmd):
-                                    any_success = True
+                    elif isinstance(cloud, MeijuCloud):
+                        if status := await cloud.get_device_status(
+                            appliance_code=self._device_id,
+                            query=actual_query
+                        ):
+                            self._parse_cloud_message(status)
+                            any_success = True
+                        elif cloud.lua_status_analysis_error:
+                            self._skipped_queries.add(query_sig)
+                            MideaLogger.warning(
+                                f"Cloud lua analysis exception for query {query}, "
+                                f"skip further retries. msg={cloud.lua_status_analysis_msg}"
+                            )
+                        else:
+                            if self._lua_runtime is not None:
+                                if query_cmd := await self._lua_runtime.async_build_query(actual_query):
+                                    if await self._build_send(query_cmd):
+                                        any_success = True
+                except Exception as e:
+                    self._skipped_queries.add(query_sig)
+                    MideaLogger.warning(
+                        f"Status query failed for {query}, skip further retries: {e}",
+                        self._device_id,
+                    )
 
         # 没有执行任何云端查询时（如查询全部被跳过）不算失败
         return any_success or not attempted
@@ -705,8 +734,17 @@ class MiedaDevice(threading.Thread):
         return ParseMessageResult.SUCCESS
 
     async def _send_message(self, data) -> bool:
-        """经云端透传发送。返回设备是否给出了应答（用于失败上报）。"""
-        if reply := await self._cloud.send_cloud(self._device_id, data):
+        """经云端透传发送。返回设备是否给出了应答（用于失败上报）。
+
+        云端 1306（无异步应答）时 send_cloud 返回 True：指令很可能已送达，
+        只是设备关机后来不及回帧，不当作控制失败（#254）。
+        """
+        if self._cloud is None:
+            return False
+        reply = await self._cloud.send_cloud(self._device_id, data)
+        if reply is True:
+            return True
+        if reply:
             if self._lua_runtime is not None:
                 if reply_dec := await self._lua_runtime.async_decode_status(
                     dec_string_to_bytes(reply).hex()
@@ -733,7 +771,16 @@ class MiedaDevice(threading.Thread):
         self._connected = connected
         status = {"connected": connected}
         if not connected:
-            MideaLogger.warning(f"Device {self._device_id} disconnected", self._device_id)
+            # This path only fires at construction, reflecting the cloud's
+            # onlineStatus at list time. For a cloud-only appliance that is
+            # routine (e.g. a mains-unplugged unit) and the coordinator already
+            # surfaces genuine unavailability after N failed polls, so keep it
+            # quiet. A device reachable over a local IP that reports
+            # disconnected is still worth a warning.
+            if self._ip_address is None:
+                MideaLogger.debug(f"Device {self._device_id} disconnected", self._device_id)
+            else:
+                MideaLogger.warning(f"Device {self._device_id} disconnected", self._device_id)
         else:
             MideaLogger.debug(f"Device {self._device_id} connected", self._device_id)
         self._update_all(status)

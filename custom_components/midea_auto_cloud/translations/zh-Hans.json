@@ -282,6 +282,15 @@
       "storage_ice_home_door_state": {
         "name": "冷藏制冰室门状态"
       },
+      "ice_machine_full": {
+        "name": "制冰满"
+      },
+      "storage_ice_full_tips": {
+        "name": "冷藏制冰满"
+      },
+      "is_have_freezing_ice": {
+        "name": "有冰"
+      },
       "top_hot": {
         "name": "上盖加热"
       },
@@ -395,6 +404,42 @@
       },
       "tank_status": {
         "name": "水箱状态"
+      },
+      "water_box": {
+        "name": "水盒"
+      },
+      "smelly_trigger": {
+        "name": "异味超标"
+      },
+      "dehumidity_trigger": {
+        "name": "除湿运行中"
+      },
+      "current_radar_status": {
+        "name": "雷达感应"
+      },
+      "body_induction": {
+        "name": "人体感应"
+      },
+      "backflow": {
+        "name": "回流故障"
+      },
+      "stew_heat_status": {
+        "name": "炖加热状态"
+      },
+      "bubble_status": {
+        "name": "气泡检测"
+      },
+      "full": {
+        "name": "水箱水满"
+      },
+      "door_auto_open": {
+        "name": "自动开门"
+      },
+      "camera_status": {
+        "name": "摄像头状态"
+      },
+      "live_video_status": {
+        "name": "实时视频状态"
       }
     },
     "climate": {
@@ -626,7 +671,8 @@
               "none": "无预设",
               "eco": "节能模式",
               "comfort": "舒适模式",
-              "boost": "强劲模式"
+              "boost": "强劲模式",
+              "sleep": "睡眠模式"
             }
           }
         },
@@ -656,6 +702,48 @@
       },
       "heating": {
         "name": "采暖"
+      },
+      "bath_heater": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "close": "关闭",
+              "heating": "制热",
+              "bath": "沐浴",
+              "ventilation": "换气",
+              "drying": "烘干",
+              "blowing": "吹风"
+            }
+          },
+          "preset_modes": {
+            "state": {
+              "close": "关闭",
+              "heating": "制热",
+              "bath": "沐浴",
+              "ventilation": "换气",
+              "drying": "烘干",
+              "blowing": "吹风"
+            }
+          },
+          "swing_mode": {
+            "state": {
+              "swing": "摆风",
+              "heating": "制热",
+              "bath": "沐浴",
+              "ventilation": "换气",
+              "drying": "烘干"
+            }
+          },
+          "fan_mode": {
+            "state": {
+              "silent": "静音",
+              "soft_wind": "柔风",
+              "standard": "标准",
+              "strong": "强劲",
+              "storm": "暴风"
+            }
+          }
+        }
       }
     },
     "cover": {
@@ -695,6 +783,14 @@
       }
     },
     "select": {
+      "smelly_threshold": {
+        "name": "异味检测阈值",
+        "state": {
+          "high": "高",
+          "medium": "中",
+          "low": "低"
+        }
+      },
       "heating_capacity": {
         "name": "加热胆量",
         "state": {
@@ -1208,7 +1304,13 @@
         }
       },
       "gesture_value": {
-        "name": "手势操作"
+        "name": "手势操作",
+        "state": {
+          "power_toggle": "开关机",
+          "adjust_speed": "调风速",
+          "light_toggle": "开关灯",
+          "power_and_speed": "开关机并调风速"
+        }
       },
       "gesture_sensitivity_value": {
         "name": "手势灵敏度",
@@ -1397,7 +1499,50 @@
           "hanfu_spring_summer": "汉服（春夏）",
           "hanfu_autumn_winter": "汉服（秋冬）",
           "skin_care_wash": "护肤洗",
-          "hanfu_wash": "汉服洗"
+          "hanfu_wash": "汉服洗",
+          "bedsheet": "床单",
+          "plush": "毛绒",
+          "dehumidify": "除湿",
+          "cold_air_fresh_air": "冷风清新",
+          "hot_air_dry": "热风烘干",
+          "quick_dry": "快烘",
+          "low_temp_dry": "低温烘干",
+          "eco_dry": "节能烘干",
+          "quick_dry_30": "快烘30分",
+          "towel": "毛巾",
+          "intelligent_dry": "智能烘干",
+          "steam_care": "蒸汽护理",
+          "fixed_time_dry": "定时烘干",
+          "night_dry": "夜间烘干",
+          "bracket_dry": "支架烘干",
+          "western_trouser": "西裤",
+          "dehumidification": "除湿",
+          "smart_dry": "智慧烘干",
+          "four_piece_suit": "四件套",
+          "warm_clothes": "暖衣",
+          "quick_dry_20": "快烘20分",
+          "steam_sterilize": "蒸汽除菌",
+          "big_60": "大件60分",
+          "steam_no_iron": "蒸汽免熨",
+          "bed_clothes": "床品",
+          "little_fast_dry": "小快烘",
+          "small_piece_dry": "小件烘干",
+          "big_dry": "大件烘干",
+          "wool_nurse": "羊毛护理",
+          "sun_quilt": "晒被",
+          "fresh_remove_smell": "清新除味",
+          "bucket_self_clean": "筒自洁",
+          "sterilize": "除菌",
+          "heavy_duty": "强力",
+          "towel_warmer": "暖毛巾",
+          "air_fluff": "蓬松",
+          "delicates": "轻柔",
+          "time_drying_30": "定时30分",
+          "time_drying_60": "定时60分",
+          "time_drying_90": "定时90分",
+          "dry_softnurse": "柔护烘干",
+          "uniforms": "制服",
+          "remove_electricity": "除静电"
         }
       },
       "query_type": {
@@ -1813,7 +1958,14 @@
         }
       },
       "wind_pressure": {
-        "name": "风压"
+        "name": "风压",
+        "state": {
+          "off": "关闭",
+          "low": "低速",
+          "medium": "中速",
+          "high": "高速",
+          "extreme": "强劲"
+        }
       },
       "hot_style": {
         "name": "供热方式"
@@ -1930,6 +2082,12 @@
           "4": "中高档",
           "5": "高档"
         }
+      },
+      "temperature_level": {
+        "name": "温度档位"
+      },
+      "smell": {
+        "name": "除味"
       }
     },
     "sensor": {
@@ -3253,6 +3411,60 @@
       },
       "filter_use_per": {
         "name": "滤芯使用百分比"
+      },
+      "keep_fresh_status": {
+        "name": "保鲜状态"
+      },
+      "ventilation_speed": {
+        "name": "换气风速"
+      },
+      "smelly_level": {
+        "name": "异味等级"
+      },
+      "current_height": {
+        "name": "下降高度"
+      },
+      "location_status": {
+        "name": "位置状态"
+      },
+      "standby_status": {
+        "name": "待机状态"
+      },
+      "life_fcb": {
+        "name": "FCB滤芯剩余寿命"
+      },
+      "life_ro": {
+        "name": "RO滤芯剩余寿命"
+      },
+      "operator": {
+        "name": "操作"
+      },
+      "additional": {
+        "name": "附加功能"
+      },
+      "wash_region": {
+        "name": "洗涤区域"
+      },
+      "wind_speed_real": {
+        "name": "实测风速"
+      },
+      "temperature_above": {
+        "name": "上管温度"
+      },
+      "temperature_underside": {
+        "name": "下管温度"
+      },
+      "fire_power": {
+        "name": "火力"
+      },
+      "work_mode": {
+        "name": "工作模式"
+      },
+      "mouthfeel": {
+        "name": "口感"
+      },
+      "execute": {
+        "name": "执行状态"
       }
     },
     "light": {
@@ -3270,6 +3482,15 @@
             }
           }
         }
+      },
+      "main_light": {
+        "name": "浴霸照明灯"
+      },
+      "night_light": {
+        "name": "起夜灯"
+      },
+      "common_light": {
+        "name": "晾衣灯"
       }
     },
     "lock": {
@@ -3475,6 +3696,30 @@
       },
       "area2_gear": {
         "name": "双区区域2档位"
+      },
+      "smell_time": {
+        "name": "除味时间"
+      },
+      "custom_height": {
+        "name": "晾衣高度"
+      },
+      "timing_light_off": {
+        "name": "延时关灯"
+      },
+      "voice_set": {
+        "name": "语音音量"
+      },
+      "timing_regeneration_hour": {
+        "name": "定时再生（小时）"
+      },
+      "timing_regeneration_min": {
+        "name": "定时再生（分钟）"
+      },
+      "dry_time_setting": {
+        "name": "烘干时间"
+      },
+      "quick_prepare_food_angle": {
+        "name": "备菜角度"
       }
     },
     "fan": {
@@ -3485,8 +3730,18 @@
             "state": {
               "baby": "宝宝风",
               "normal": "正常风",
-              "storm": "循环风",
+              "natural": "自然风",
               "sleep": "睡眠风",
+              "comfort": "舒适风",
+              "mute": "静音",
+              "feel": "感应风",
+              "storm": "循环风",
+              "strong": "强风",
+              "soft": "柔风",
+              "customize": "自定义",
+              "warm": "暖风",
+              "smart": "智能",
+              "ecology": "生态风",
               "self_selection": "自选风",
               "sleeping_wind": "睡眠风",
               "ai_smart": "生态风",
@@ -3502,6 +3757,20 @@
             "state": {
               "auto": "自动",
               "manual": "手动"
+            }
+          }
+        }
+      },
+      "fresh_air_fan": {
+        "name": "新风",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "heat_exchange": "热交换",
+              "rough_in": "强力送风",
+              "smooth_in": "送风",
+              "rough_out": "强力排风",
+              "smooth_out": "排风"
             }
           }
         }
@@ -4683,6 +4952,72 @@
       },
       "water_pump": {
         "name": "水泵"
+      },
+      "dry_night": {
+        "name": "夜间烘干"
+      },
+      "remove_static_electricity": {
+        "name": "除静电"
+      },
+      "intelligent_prevent_damp": {
+        "name": "智能防潮"
+      },
+      "flash_dry": {
+        "name": "闪烘"
+      },
+      "anion_enable": {
+        "name": "负离子"
+      },
+      "smelly_enable": {
+        "name": "异味检测"
+      },
+      "set_light_off": {
+        "name": "延时关灯功能"
+      },
+      "mic_switch": {
+        "name": "麦克风"
+      },
+      "horn_switch": {
+        "name": "提示音"
+      },
+      "wakeup_free_switch": {
+        "name": "免唤醒"
+      },
+      "continuous_dialogue_switch": {
+        "name": "连续对话"
+      },
+      "remote_control_broadcast_switch": {
+        "name": "遥控播报"
+      },
+      "lift_up_switch": {
+        "name": "轻抬上升"
+      },
+      "wifi_light_switch": {
+        "name": "联网指示灯"
+      },
+      "filter_self_cleaning": {
+        "name": "滤芯自清洁"
+      },
+      "extreme_mode": {
+        "name": "极限模式"
+      },
+      "auto_fill_water": {
+        "name": "自动注水"
+      },
+      "smart_ro_obsolete_water": {
+        "name": "智能废水比"
+      },
+      "gesture": {
+        "name": "手势控制"
+      },
+      "prepare_food": {
+        "name": "备菜"
+      },
+      "quick_fry": {
+        "name": "爆炒"
+      },
+      "fengguan_remove_odor": {
+        "name": "风管去味"
       }
     },
     "text": {

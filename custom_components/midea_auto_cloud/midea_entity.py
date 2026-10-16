@@ -23,6 +23,7 @@ class Rationale(IntEnum):
     LESS = 2
 
 _YES_NO_VALUES = frozenset({"yes", "no"})
+_ON_OFF_VALUES = frozenset({"on", "off"})
 
 
 class MideaEntity(CoordinatorEntity[MideaDataUpdateCoordinator], Entity):
@@ -234,22 +235,31 @@ class MideaEntity(CoordinatorEntity[MideaDataUpdateCoordinator], Entity):
         """Normalize common on/off wire formats to bool."""
         if isinstance(value, bool):
             return value
-        if isinstance(value, (int, float)) and int(value) in (0, 1):
-            return bool(int(value))
+        if isinstance(value, (int, float)):
+            # Devices report levels like 0/100 for off/on; nonzero means on.
+            return value != 0
         if isinstance(value, str):
             normalized = value.lower()
-            if normalized in ("yes", "on", "true", "1"):
+            if normalized in ("yes", "on", "true"):
                 return True
-            if normalized in ("no", "off", "false", "0"):
+            if normalized in ("no", "off", "false", "invalid", "unknown"):
                 return False
+            try:
+                return float(normalized) != 0
+            except ValueError:
+                return None
         return None
 
     def _on_off_wire_value(self, turn_on: bool, attribute_key: str | None = None) -> Any:
         """Return the on/off value to send, matching the device's wire format."""
         if attribute_key:
             current = self._get_nested_value(attribute_key)
-            if isinstance(current, str) and current.lower() in _YES_NO_VALUES:
-                return "yes" if turn_on else "no"
+            if isinstance(current, str):
+                normalized = current.lower()
+                if normalized in _YES_NO_VALUES:
+                    return "yes" if turn_on else "no"
+                if normalized in _ON_OFF_VALUES:
+                    return "on" if turn_on else "off"
         return self._rationale[int(turn_on)]
 
     def _get_status_on_off(self, attribute_key: str | None) -> bool:
@@ -315,7 +325,7 @@ class MideaEntity(CoordinatorEntity[MideaDataUpdateCoordinator], Entity):
                 if state_value is None:
                     match = False
                     break
-                if rationale is Rationale.EQUALLY and state_value != value:
+                if rationale is Rationale.EQUALLY and not self._values_equal_soft(state_value, value):
                     match = False
                     break
                 if rationale is Rationale.GREATER and state_value < value:
@@ -329,17 +339,23 @@ class MideaEntity(CoordinatorEntity[MideaDataUpdateCoordinator], Entity):
         return None
 
     def _values_equal_soft(self, state_value: Any, expected: Any) -> bool:
-        """Loose equality for wire formats (on/off aliases, numeric strings)."""
+        """Loose equality for wire formats (on/off aliases, numeric strings).
+
+        Numeric multi-level codes (e.g. T0x21 run_mode 1=fan / 2=cool / 3=heat)
+        must compare as numbers first. Coercing every nonzero value to "on" would
+        make cool/heat/dry all soft-match fan_only (#249).
+        """
         if state_value == expected:
             return True
+        try:
+            return float(state_value) == float(expected)
+        except (TypeError, ValueError):
+            pass
         state_on_off = self._coerce_on_off(state_value)
         expected_on_off = self._coerce_on_off(expected)
         if state_on_off is not None and expected_on_off is not None:
             return state_on_off == expected_on_off
-        try:
-            return float(state_value) == float(expected)
-        except (TypeError, ValueError):
-            return str(state_value) == str(expected)
+        return str(state_value) == str(expected)
 
     def _dict_get_selected(self, key_of_dict: dict, rationale: Rationale = Rationale.EQUALLY):
         for mode, status in key_of_dict.items():
